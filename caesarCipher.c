@@ -65,17 +65,9 @@ int main(int argc, char *argv[]) {
         int len = strlen(str);
         int range = len / (size-1);
         for(int i = 1; i < size; i++) {
-            int start = (i - 1) * range;
-            int end = start + range - 1;
-            // If it is the last process, then the end index will be the length of the string
-            if(i == size - 1) {
-                end = len - 1;
-            }
-            // Sending the start, end, choice, length of the string and the string to the processes
-            MPI_Send(&start, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            MPI_Send(&end, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            // Sending the range, choice and string to the processes
+            MPI_Send(&range, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
             MPI_Send(&choice, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-            MPI_Send(&len, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
             MPI_Send(str, strlen(str) + 1, MPI_CHAR, i, 0, MPI_COMM_WORLD);
         }
         for(int i = 1; i < size; i++) {
@@ -94,14 +86,18 @@ int main(int argc, char *argv[]) {
         }
         printf("Encrypted/Decrypted string: %s\n", str);
     } else {
-        int start, end, choice, len;
-        // Receiving the start, end, choice, length of the string and the string from the process 0
-        MPI_Recv(&start, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&end, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        int start, end, choice, range;
+        // Receiving the range, choice and string from the process 0
+
+        MPI_Recv(&range, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
         MPI_Recv(&choice, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&len, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        char str[len];
+        char str[100];
         MPI_Recv(str, 100, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
+        start = (rank - 1) * range;
+        end = start + range - 1;
+        if(rank == size - 1) {
+            end = strlen(str) - 1;
+        }
         // Encrypting/Decrypting the string
         if(choice == 1) {
             // Encrypting the string with shift value 3
